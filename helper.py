@@ -2,6 +2,7 @@ import os
 import scipy.io
 import numpy as np
 import tensorflow as tf
+import time
 
 
 def load_data(input_dir, fileprefix='table_of_drirs_100-0',
@@ -84,3 +85,74 @@ def fc_layer(x, size_out, activation=tf.nn.relu, name="fc"):
         tf.summary.histogram("biases", b)
         tf.summary.histogram("activations", act)
         return act
+
+
+def train(predictions, learning_rate):
+    with tf.name_scope("loss"):
+        losses = tf.losses.mean_squared_error(labels=y, predictions=predictions)
+        loss = tf.reduce_mean(losses)
+        tf.summary.scalar("loss", loss)
+
+    with tf.name_scope("train"):
+        optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
+        training_op = optimizer.minimize(loss)
+
+        return loss, training_op
+
+
+def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
+    """Run a model given as a callback function"""
+    tf.reset_default_graph()
+
+    """
+    1 Graph construction phase
+    """
+    # 1.1 feature and label variable nodes
+    x = tf.placeholder(tf.float32, shape=(None, data["features"].shape[1], data["features"].shape[2], 1), name="X")
+    y = tf.placeholder(tf.float32, shape=(None, data["labels"].shape[1]), name="labels")
+
+    # 1.2 The model itself is given as a callback function
+    predictions = model()
+
+    # 1.3 Loss, training and evaluation computation nodes
+    loss, training_op = train(predictions, learning_rate)
+
+    with tf.name_scope("eval"):
+        acc, acc_op = tf.metrics.accuracy(y, predictions)
+
+    merged_summary = tf.summary.merge_all()
+
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
+
+    """
+    2 Execution phase
+    """
+    # 2.2 Prepare data
+    x_train, y_train, x_test, y_test = split_data(data, 0.9)
+    batch_size = 20
+    n_batches = int(np.ceil(len(x_train) / batch_size))
+
+    # 2.1 Enable GPU support
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+
+    with tf.Session(config=config) as sess:
+        writer = tf.summary.FileWriter(log_dir + time.strftime("%Y-%m-%d_%H-%M-%S"), sess.graph)
+        sess.run(init)
+
+        for epoch in range(0, n_epochs):
+
+            for i in range(0, n_batches // batch_size):
+                x_batch, y_batch = next_batch(batch_size, x_train, y_train)
+                sess.run(training_op, feed_dict={x: x_batch, y: y_batch})
+                print("i: ", i)
+                summary = sess.run(merged_summary, feed_dict={x: x_batch, y: y_batch})
+                writer.add_summary(summary, i)
+
+            print("epoch {}, loss {}".format(epoch, loss))
+        # acc_train = sess.run(acc, feed_dict={y: y_batch})
+        Z = predictions.eval(feed_dict={x: x_test, y: y_test})
+
+    Z = np.reshape(Z, (-1, 3, 3))
+    y_test = np.reshape(y_test, (-1, 3, 3))
