@@ -1,6 +1,7 @@
 import os
 import scipy.io
 import numpy as np
+import tensorflow as tf
 
 
 def load_data(input_dir, fileprefix='table_of_drirs_100-0',
@@ -54,3 +55,32 @@ def next_batch(batch_size, x, y):
 
 
 next_batch.pointer = 0
+
+
+def conv_layer(x, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="conv"):
+    """Wrapper for tf.nn.conv2d with summary"""
+    with tf.name_scope(name):
+        w = tf.Variable(tf.zeros(filter))
+        b = tf.Variable(tf.zeros(filter[-1]))
+        Z = tf.nn.conv2d(x, w, strides=strides)
+        act = activation(Z + b)
+
+        tf.summary.histogram("weights", w)
+        tf.summary.histogram("biases", b)
+        tf.summary.histogram("activations", act)
+        return act
+
+
+def fc_layer(x, size_out, activation=tf.nn.relu, name="fc"):
+    """Wrapper for tf.matmul with summary"""
+    with tf.name_scope(name):
+        size_in = int(x.get_shape()[1])
+        w = tf.Variable(tf.zeros(shape=[size_in, size_out]), name="w")
+        b = tf.Variable(tf.zeros(shape=[size_out]), name="b")
+        Z = tf.matmul(x, w)
+        act = activation(Z + b)
+
+        tf.summary.histogram("weights", w)
+        tf.summary.histogram("biases", b)
+        tf.summary.histogram("activations", act)
+        return act
