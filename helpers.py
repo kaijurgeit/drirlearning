@@ -138,22 +138,23 @@ def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
 
+    log_dir += time.strftime("%Y-%m-%d_%H-%M-%S")
     with tf.Session(config=config) as sess:
-        writer = tf.summary.FileWriter(log_dir + time.strftime("%Y-%m-%d_%H-%M-%S"), sess.graph)
+        writer = tf.summary.FileWriter(log_dir, sess.graph)
         sess.run(init)
 
         for epoch in range(0, n_epochs):
 
             for batch in range(0, n_batches):
-                x_batch, y_batch = next_batch(batch_size, x_train, y_train)
-                sess.run(training_op, feed_dict={x: x_batch, y: y_batch})
                 print("batch no. ", batch)
-                summary = sess.run(merged_summary, feed_dict={x: x_batch, y: y_batch})
+                x_batch, y_batch = next_batch(batch_size, x_train, y_train)
+                _, summary = sess.run([training_op, merged_summary], feed_dict={x: x_batch, y: y_batch})
                 writer.add_summary(summary, batch)
 
             print("epoch {}, loss {}".format(epoch, loss))
-        # acc_train = sess.run(acc, feed_dict={y: y_batch})
         Z = predictions.eval(feed_dict={x: x_test, y: y_test})
+
+        print("Done training. Run `tensorboard --logdir={}` to see the results.".format(log_dir))
 
     Z = np.reshape(Z, (-1, 3, 3))
     y_test = np.reshape(y_test, (-1, 3, 3))

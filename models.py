@@ -10,8 +10,8 @@ def model1(x):
 
     flattened = tf.layers.Flatten()(pool2)
     fc1 = fc_layer(flattened, 6000, name="fc1")
-    fc2 = fc_layer(fc1, 1000, name="fc1")
-    fc3 = fc_layer(fc2, 200, name="fc1")
+    fc2 = fc_layer(fc1, 1000, name="fc2")
+    fc3 = fc_layer(fc2, 200, name="fc3")
     predictions = fc_layer(fc3, 9, name="predictions")
 
     return predictions
