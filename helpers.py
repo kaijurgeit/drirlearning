@@ -48,6 +48,7 @@ def next_batch(batch_size, x, y):
     if len(x) <= (next_batch.pointer + batch_size - 1):
         x_batch = x[next_batch.pointer:, :, :, :]
         y_batch = y[next_batch.pointer:, :]
+        next_batch.pointer = 0
     else:
         x_batch = x[next_batch.pointer:(next_batch.pointer + batch_size), :, :, :]
         y_batch = y[next_batch.pointer:(next_batch.pointer + batch_size), :]
@@ -63,7 +64,7 @@ def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name
     with tf.name_scope(name):
         w = tf.Variable(tf.zeros(filter))
         b = tf.Variable(tf.zeros(filter[-1]))
-        Z = tf.nn.conv2d(inputs, w, strides=strides)
+        Z = tf.nn.conv2d(inputs, w, strides=strides, padding="SAME")
         act = activation(Z + b)
 
         tf.summary.histogram("weights", w)
@@ -87,7 +88,7 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
         return act
 
 
-def train(predictions, learning_rate):
+def train(y, predictions, learning_rate):
     with tf.name_scope("loss"):
         losses = tf.losses.mean_squared_error(labels=y, predictions=predictions)
         loss = tf.reduce_mean(losses)
@@ -100,10 +101,9 @@ def train(predictions, learning_rate):
         return loss, training_op
 
 
-def eval(y, predictions):
+def evaluate(y, predictions):
     with tf.name_scope("eval"):
         return tf.metrics.accuracy(y, predictions)
-
 
 
 def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
@@ -118,23 +118,20 @@ def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
     y = tf.placeholder(tf.float32, shape=(None, data["labels"].shape[1]), name="labels")
 
     # 1.2 The model itself is given as a callback function
-    predictions = model()
+    predictions = model(x)
 
     # 1.3 Loss, training and evaluation computation nodes
-    loss, training_op = train(predictions, learning_rate)
-    acc, acc_op = eval(y, predictions)
+    loss, training_op = train(y, predictions, learning_rate)
+    acc, acc_op = evaluate(y, predictions)
 
     merged_summary = tf.summary.merge_all()
-
     init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
 
     """
     2 Execution phase
     """
     # 2.2 Prepare data
-    x_train, y_train, x_test, y_test = split_data(data, 0.9)
-    batch_size = 20
+    x_train, y_train, x_test, y_test = split_data(data, split)
     n_batches = int(np.ceil(len(x_train) / batch_size))
 
     # 2.1 Enable GPU support
@@ -147,12 +144,12 @@ def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
 
         for epoch in range(0, n_epochs):
 
-            for i in range(0, n_batches // batch_size):
+            for batch in range(0, n_batches):
                 x_batch, y_batch = next_batch(batch_size, x_train, y_train)
                 sess.run(training_op, feed_dict={x: x_batch, y: y_batch})
-                print("i: ", i)
+                print("batch no. ", batch)
                 summary = sess.run(merged_summary, feed_dict={x: x_batch, y: y_batch})
-                writer.add_summary(summary, i)
+                writer.add_summary(summary, batch)
 
             print("epoch {}, loss {}".format(epoch, loss))
         # acc_train = sess.run(acc, feed_dict={y: y_batch})

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from helper import *
+from helpers import *
 
 
 def model1(x):
@@ -12,7 +12,7 @@ def model1(x):
     fc1 = fc_layer(flattened, 6000, name="fc1")
     fc2 = fc_layer(fc1, 1000, name="fc1")
     fc3 = fc_layer(fc2, 200, name="fc1")
-    predictions = fc_layer(fc3, fc3.get_shape()[1], 9, name="predictions")
+    predictions = fc_layer(fc3, 9, name="predictions")
 
     return predictions
 
