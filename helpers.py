@@ -62,8 +62,8 @@ next_batch.pointer = 0
 def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="conv"):
     """Wrapper for tf.nn.conv2d with summary"""
     with tf.name_scope(name):
-        w = tf.Variable(tf.zeros(filter))
-        b = tf.Variable(tf.zeros(filter[-1]))
+        w = tf.Variable(tf.truncated_normal(filter, stddev=0.1))
+        b = tf.Variable(tf.constant(0.1, shape=[filter[-1]]))
         Z = tf.nn.conv2d(inputs, w, strides=strides, padding="SAME")
         act = activation(Z + b)
 
