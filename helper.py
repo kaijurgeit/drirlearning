@@ -58,12 +58,12 @@ def next_batch(batch_size, x, y):
 next_batch.pointer = 0
 
 
-def conv_layer(x, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="conv"):
+def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="conv"):
     """Wrapper for tf.nn.conv2d with summary"""
     with tf.name_scope(name):
         w = tf.Variable(tf.zeros(filter))
         b = tf.Variable(tf.zeros(filter[-1]))
-        Z = tf.nn.conv2d(x, w, strides=strides)
+        Z = tf.nn.conv2d(inputs, w, strides=strides)
         act = activation(Z + b)
 
         tf.summary.histogram("weights", w)
@@ -72,13 +72,13 @@ def conv_layer(x, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="con
         return act
 
 
-def fc_layer(x, size_out, activation=tf.nn.relu, name="fc"):
+def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
     """Wrapper for tf.matmul with summary"""
     with tf.name_scope(name):
-        size_in = int(x.get_shape()[1])
+        size_in = int(inputs.get_shape()[1])
         w = tf.Variable(tf.zeros(shape=[size_in, size_out]), name="w")
         b = tf.Variable(tf.zeros(shape=[size_out]), name="b")
-        Z = tf.matmul(x, w)
+        Z = tf.matmul(inputs, w)
         act = activation(Z + b)
 
         tf.summary.histogram("weights", w)
@@ -100,6 +100,12 @@ def train(predictions, learning_rate):
         return loss, training_op
 
 
+def eval(y, predictions):
+    with tf.name_scope("eval"):
+        return tf.metrics.accuracy(y, predictions)
+
+
+
 def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
     """Run a model given as a callback function"""
     tf.reset_default_graph()
@@ -116,9 +122,7 @@ def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
 
     # 1.3 Loss, training and evaluation computation nodes
     loss, training_op = train(predictions, learning_rate)
-
-    with tf.name_scope("eval"):
-        acc, acc_op = tf.metrics.accuracy(y, predictions)
+    acc, acc_op = eval(y, predictions)
 
     merged_summary = tf.summary.merge_all()
 
