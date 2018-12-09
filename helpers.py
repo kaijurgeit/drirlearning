@@ -21,7 +21,7 @@ def load_data(input_dir, fileprefix='table_of_drirs_100-0',
 
         # Extract data and labels from mat-File
         for k in range(0, file_size):
-            data["features"][l * file_size + k, :, :] = mat['table_of_drirs'][0][k][6].astype(np.float16)[:,cut_start:cut_end]
+            data["features"][l * file_size + k, :, :] = mat['table_of_drirs'][0][k][6].astype(np.float32)[:,cut_start:cut_end]
             data["labels"][l * file_size + k, 0:3] = mat['table_of_drirs'][0][k][-1][0, 0][1]  # dim
             data["labels"][l * file_size + k, 3:6] = mat['table_of_drirs'][0][k][-1][0, 0][2]  # s_pos
             data["labels"][l * file_size + k, 6:9] = mat['table_of_drirs'][0][k][-1][0, 0][3]  # r_pos
@@ -110,16 +110,34 @@ def train(y, predictions, learning_rate):
         return loss, training_op
 
 
+def leaky_relu(z, name=None):
+    """Leaky ReLU might help against vanishing gradients"""
+    return tf.maximum(0.01 * z, z, name=name)
+
+
+def elu(z, alpha=1):
+    """ELU might help against vanishing gradients"""
+    return np.where(z < 0, alpha * (np.exp(z) - 1), z)
+
+
+def selu(z,
+         scale=1.0507009873554804934193349852946,
+         alpha=1.6732632423543772848170429916717):
+    """SELU might help against vanishing gradients"""
+    return scale * elu(z, alpha)
+
+
 def hparam(model, learning_rate):
     """Gives the current run a signature by combining model's hyperparameter to a string"""
     signature = "_{}-lr={}".format(model.__name__, learning_rate)
     return signature
 
 
-def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir):
+def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, dropout=False):
     """Run a model given as a callback function"""
     tf.reset_default_graph()
     log_dir += hparam(model, learning_rate)
+    is_training = tf.placeholder_with_default(dropout, shape=())
 
     """
     1 Graph construction phase
@@ -129,7 +147,7 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir):
     y = tf.placeholder(tf.float32, shape=(None, data["labels"].shape[1]), name="labels")
 
     # 1.2 The model itself is given as a callback function
-    predictions = model(x)
+    predictions = model(x, is_training=is_training)
 
     # 1.3 Loss, training and evaluation computation nodes
     loss, training_op = train(y, predictions, learning_rate)
@@ -161,7 +179,12 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir):
             writer.add_summary(summary, epoch)
 
             print("epoch {}, loss {}".format(epoch, loss_res))
-        Z = predictions.eval(feed_dict={x: x_test, y: y_test})
+        try:
+            z_test = predictions.eval(feed_dict={x: x_test, y: y_test, is_training: False})
+        except:
+            print("There must be at least one test sample, see splut and file_size.")
 
-    Z = np.reshape(Z, (-1, 3, 3))
+    z_test = np.reshape(z_test, (-1, 3, 3))
     y_test = np.reshape(y_test, (-1, 3, 3))
+
+    return z_test, y_test
