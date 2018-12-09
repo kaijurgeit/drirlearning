@@ -59,6 +59,7 @@ def next_batch(batch_size, x, y):
         x_batch = x[next_batch.pointer:(next_batch.pointer + batch_size), :, :, :]
         y_batch = y[next_batch.pointer:(next_batch.pointer + batch_size), :]
     next_batch.pointer += batch_size
+    assert(len(x_batch) > 0)
     return x_batch, y_batch
 
 
@@ -117,7 +118,7 @@ def leaky_relu(z, name=None):
 
 def elu(z, alpha=1):
     """ELU might help against vanishing gradients"""
-    return np.where(z < 0, alpha * (np.exp(z) - 1), z)
+    return tf.where(z < 0, alpha * (tf.math.exp(z) - 1), z)
 
 
 def selu(z,
@@ -127,17 +128,22 @@ def selu(z,
     return scale * elu(z, alpha)
 
 
-def hparam(model, learning_rate):
+def hparam(model, learning_rate, dropout, activation):
     """Gives the current run a signature by combining model's hyperparameter to a string"""
-    signature = "_{}-lr={}".format(model.__name__, learning_rate)
+    act_str = activation.__name__.split('.')[-1]
+    signature = "_{}-lr={}-act={}".format(model.__name__, learning_rate, act_str)
+    if dropout:
+        signature += "-do={}".format(dropout)
     return signature
 
 
-def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, dropout=False):
+def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, activation=tf.nn.relu, dropout=0):
     """Run a model given as a callback function"""
     tf.reset_default_graph()
-    log_dir += hparam(model, learning_rate)
-    is_training = tf.placeholder_with_default(dropout, shape=())
+    is_training = tf.placeholder_with_default(True, shape=())
+    save_dir = log_dir + "\\model.ckpt"
+    log_dir += hparam(model, learning_rate, dropout, activation)
+    print(log_dir)
 
     """
     1 Graph construction phase
@@ -147,13 +153,14 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
     y = tf.placeholder(tf.float32, shape=(None, data["labels"].shape[1]), name="labels")
 
     # 1.2 The model itself is given as a callback function
-    predictions = model(x, is_training=is_training)
+    predictions = model(x, is_training=is_training, dropout=dropout, activation=activation)
 
     # 1.3 Loss, training and evaluation computation nodes
     loss, training_op = train(y, predictions, learning_rate)
 
     merged_summary = tf.summary.merge_all()
     init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
 
     """
     2 Execution phase
@@ -171,6 +178,7 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
 
         for epoch in range(0, n_epochs):
             x_train, y_train = shuffle(x_train, y_train)
+            next_batch.pointer = 0
             for batch in range(0, n_batches):
                 print("batch no. ", batch)
                 x_batch, y_batch = next_batch(batch_size, x_train, y_train)
@@ -182,7 +190,9 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
         try:
             z_test = predictions.eval(feed_dict={x: x_test, y: y_test, is_training: False})
         except:
-            print("There must be at least one test sample, see splut and file_size.")
+            print("There must be at least one test sample, see split and file_size.")
+
+        saver.save(sess, save_dir)
 
     z_test = np.reshape(z_test, (-1, 3, 3))
     y_test = np.reshape(y_test, (-1, 3, 3))
