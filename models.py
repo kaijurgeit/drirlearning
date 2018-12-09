@@ -2,7 +2,7 @@ import tensorflow as tf
 from helpers import *
 
 
-def model1(x):
+def model_cnn_2convs_4fcs(x):
     conv1 = conv_layer(x, filter=(1, 3, 1, 4), name="conv1")
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
     conv2 = conv_layer(pool1, filter=(7, 7, 4, 16), name="conv2")

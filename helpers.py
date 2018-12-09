@@ -43,6 +43,12 @@ def split_data(data, split=0.8):
     return x_train, y_train, x_test, y_test
 
 
+def shuffle(x, y):
+    """Shuffling data is important between training epochs"""
+    rnd_idx = np.random.permutation(len(x))
+    return x[rnd_idx, :, :, :], y[rnd_idx, :]
+
+
 def next_batch(batch_size, x, y):
     """Returns batches of features and labels"""
     if len(x) <= (next_batch.pointer + batch_size - 1):
@@ -62,10 +68,12 @@ next_batch.pointer = 0
 def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="conv"):
     """Wrapper for tf.nn.conv2d with summary"""
     with tf.name_scope(name):
+        # TODO right stddev for initializing filter?
+        # stddev = 2 / np.sqrt(np.sum(filter))
         w = tf.Variable(tf.truncated_normal(filter, stddev=0.1))
         b = tf.Variable(tf.constant(0.1, shape=[filter[-1]]))
-        Z = tf.nn.conv2d(inputs, w, strides=strides, padding="SAME")
-        act = activation(Z + b)
+        z = tf.nn.conv2d(inputs, w, strides=strides, padding="SAME")
+        act = activation(z + b)
 
         tf.summary.histogram("weights", w)
         tf.summary.histogram("biases", b)
@@ -77,10 +85,11 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
     """Wrapper for tf.matmul with summary"""
     with tf.name_scope(name):
         size_in = int(inputs.get_shape()[1])
-        w = tf.Variable(tf.zeros(shape=[size_in, size_out]), name="w")
-        b = tf.Variable(tf.zeros(shape=[size_out]), name="b")
-        Z = tf.matmul(inputs, w)
-        act = activation(Z + b)
+        stddev = 2 / np.sqrt(size_in)
+        w = tf.Variable(tf.truncated_normal([size_in, size_out], stddev=stddev), name="w")
+        b = tf.Variable(tf.constant(0.1, shape=[size_out]))
+        z = tf.matmul(inputs, w)
+        act = activation(z + b)
 
         tf.summary.histogram("weights", w)
         tf.summary.histogram("biases", b)
@@ -101,14 +110,16 @@ def train(y, predictions, learning_rate):
         return loss, training_op
 
 
-def evaluate(y, predictions):
-    with tf.name_scope("eval"):
-        return tf.metrics.accuracy(y, predictions)
+def hparam(model, learning_rate):
+    """Gives the current run a signature by combining model's hyperparameter to a string"""
+    signature = "_{}-lr={}".format(model.__name__, learning_rate)
+    return signature
 
 
-def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
+def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir):
     """Run a model given as a callback function"""
     tf.reset_default_graph()
+    log_dir += hparam(model, learning_rate)
 
     """
     1 Graph construction phase
@@ -122,7 +133,6 @@ def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
 
     # 1.3 Loss, training and evaluation computation nodes
     loss, training_op = train(y, predictions, learning_rate)
-    acc, acc_op = evaluate(y, predictions)
 
     merged_summary = tf.summary.merge_all()
     init = tf.global_variables_initializer()
@@ -137,24 +147,21 @@ def run_model(model, data, split, n_epochs, batch_size, learning_rate, log_dir):
     # 2.1 Enable GPU support
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-
-    log_dir += time.strftime("%Y-%m-%d_%H-%M-%S")
     with tf.Session(config=config) as sess:
         writer = tf.summary.FileWriter(log_dir, sess.graph)
         sess.run(init)
 
         for epoch in range(0, n_epochs):
-
+            x_train, y_train = shuffle(x_train, y_train)
             for batch in range(0, n_batches):
                 print("batch no. ", batch)
                 x_batch, y_batch = next_batch(batch_size, x_train, y_train)
-                _, summary = sess.run([training_op, merged_summary], feed_dict={x: x_batch, y: y_batch})
-                writer.add_summary(summary, batch)
+                training_op_res, loss_res, summary = sess.run([training_op, loss, merged_summary],
+                                                              feed_dict={x: x_batch, y: y_batch})
+            writer.add_summary(summary, epoch)
 
-            print("epoch {}, loss {}".format(epoch, loss))
+            print("epoch {}, loss {}".format(epoch, loss_res))
         Z = predictions.eval(feed_dict={x: x_test, y: y_test})
-
-        print("Done training. Run `tensorboard --logdir={}` to see the results.".format(log_dir))
 
     Z = np.reshape(Z, (-1, 3, 3))
     y_test = np.reshape(y_test, (-1, 3, 3))
