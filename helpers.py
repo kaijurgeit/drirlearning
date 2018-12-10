@@ -2,7 +2,8 @@ import os
 import scipy.io
 import numpy as np
 import tensorflow as tf
-import time
+import matplotlib.pyplot as plt
+from sound_field_analysis.sound_field_analysis import gen, process
 
 
 def load_data(input_dir, fileprefix='table_of_drirs_100-0',
@@ -198,3 +199,34 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
     y_test = np.reshape(y_test, (-1, 3, 3))
 
     return z_test, y_test
+
+
+"""
+Signal Processing
+"""
+
+
+def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
+    # 2.1 STFT
+    f, t, Zxx = scipy.signal.stft(
+        data["features"][0, :, :, 0],
+        fs=rate, window='hann', nperseg=n_segs, noverlap=int(n_segs / 2))
+    # plt.imshow(np.abs(Zxx[0, :, :]))
+
+    n_nodes, n_fbins, n_tbins = Zxx.shape
+    grid = gen.lebedev(order)
+
+    # 2.2 Spatial Fourier Transform
+    spat_tmp_coeffs = np.zeros(((order + 1) ** 2, n_fbins, n_tbins), dtype=np.complex)
+    for tbin in range(0, n_tbins):
+        spat_tmp_coeffs[:, :, tbin] = process.spatFT(Zxx[:, :, tbin], grid, order_max=order)
+
+    if viz is not None:
+        fig1 = plt.figure()
+        fig2 = plt.figure()
+        for i in range(0, 4):
+            fig1.add_subplot(4, 1, i+1).imshow(np.abs(Zxx[i, :, :]))
+            fig2.add_subplot(4, 1, i+1).imshow(np.abs(spat_tmp_coeffs[:, :, viz[i]]))
+    data["features"] = spat_tmp_coeffs
+
+    return data

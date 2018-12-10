@@ -1,3 +1,5 @@
 .idea/*
 __pycache__/*
 dev/*
+dev.py
+sound_field_analysis/*
