@@ -100,8 +100,8 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
 
 def train(y, predictions, learning_rate):
     with tf.name_scope("loss"):
-        losses = tf.losses.mean_squared_error(labels=y, predictions=predictions)
-        loss = tf.reduce_mean(losses)
+        loss = tf.losses.mean_squared_error(labels=y, predictions=predictions)
+        # loss = tf.reduce_mean(losses)
         tf.summary.scalar("loss", loss)
 
     with tf.name_scope("train"):
