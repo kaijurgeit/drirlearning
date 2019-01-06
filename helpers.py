@@ -3,7 +3,7 @@ import scipy.io
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from sound_field_analysis.sound_field_analysis import gen, process
+# from sound_field_analysis.sound_field_analysis import gen, process
 
 
 def load_data(input_dir, fileprefix='table_of_drirs_100-0',
@@ -97,6 +97,13 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
         tf.summary.histogram("biases", b)
         tf.summary.histogram("activations", act)
         return act
+
+
+def rnn_layer(inputs, n_neurons=100, name="rnn"):
+    with tf.name_scope(name):
+        cell = tf.nn.rnn_cell.LSTMCell(n_neurons)# create a BasicRNNCell
+        outputs, state = tf.nn.dynamic_rnn(cell, inputs)
+        return outputs
 
 
 def train(y, predictions, learning_rate):
@@ -205,28 +212,50 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
 Signal Processing
 """
 
+"""
+def STFT(data, viz=None, rate=48000, n_segs=32):
+    f, t, Zxx = scipy.signal.stft(
+        data["features"][:, :, :, 0],
+        fs=rate, window='hann', nperseg=n_segs, noverlap=int(n_segs / 2))
+
+    if viz is not None:
+        fig1 = plt.figure()
+        for i in range(0, 4):
+            # STFT/Zxx: first 4 drirs and 0th node/mic -> freq/time all
+            fig1.add_subplot(4, 1, i + 1).imshow(np.abs(Zxx[i, 0, :, :]))
+
+    data["features"] = Zxx
+    return data
+
 
 def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
     # 2.1 STFT
     f, t, Zxx = scipy.signal.stft(
-        data["features"][0, :, :, 0],
+        data["features"][:, :, :, 0],
         fs=rate, window='hann', nperseg=n_segs, noverlap=int(n_segs / 2))
     # plt.imshow(np.abs(Zxx[0, :, :]))
 
-    n_nodes, n_fbins, n_tbins = Zxx.shape
+    n_drirs, n_nodes, n_fbins, n_tbins = Zxx.shape
     grid = gen.lebedev(order)
 
     # 2.2 Spatial Fourier Transform
-    spat_tmp_coeffs = np.zeros(((order + 1) ** 2, n_fbins, n_tbins), dtype=np.complex)
-    for tbin in range(0, n_tbins):
-        spat_tmp_coeffs[:, :, tbin] = process.spatFT(Zxx[:, :, tbin], grid, order_max=order)
+    spat_tmp_coeffs = np.zeros((n_drirs, (order + 1) ** 2, n_fbins, n_tbins), dtype=np.complex)
+    for d in range(0, n_drirs):
+        for tbin in range(0, n_tbins):
+            spat_tmp_coeffs[d, :, :, tbin] = process.spatFT(Zxx[d, :, :, tbin], grid, order_max=order)
 
     if viz is not None:
         fig1 = plt.figure()
         fig2 = plt.figure()
+        fig3 = plt.figure()
         for i in range(0, 4):
-            fig1.add_subplot(4, 1, i+1).imshow(np.abs(Zxx[i, :, :]))
-            fig2.add_subplot(4, 1, i+1).imshow(np.abs(spat_tmp_coeffs[:, :, viz[i]]))
+            # STFT/Zxx: first 4 drirs and 0th node/mic -> freq/time all
+            fig1.add_subplot(4, 1, i+1).imshow(np.abs(Zxx[i, 0, :, :]))
+            # spatmpFT: first 4 drirs and 4 tbins of viz -> spat/freq all
+            fig2.add_subplot(4, 1, i+1).imshow(np.abs(spat_tmp_coeffs[i, :, :, viz[i]]))
+            # spatmpFT: first 4 drirs and moderate fbin -> spat/tbin all
+            fig3.add_subplot(4, 1, i+1).imshow(np.abs(spat_tmp_coeffs[i, :, int(n_segs/4), :]))
     data["features"] = spat_tmp_coeffs
 
     return data
+"""

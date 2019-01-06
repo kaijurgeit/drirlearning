@@ -26,7 +26,7 @@ LOG_ROOT = OUTPUT_DIR + "TensorBoard\\drir\\"
 FILE_PREFIX = "table_of_drirs_100-0"
 
 log_dir = LOG_ROOT + time.strftime("%Y-%m-%d_%H-%M") + "\\"
-data = load_data(input_dir=INPUT_DIR, n_files=2, file_size=100)
+data = load_data(input_dir=INPUT_DIR, n_files=1, file_size=10)
 
 # Some hyperparameters
 split = 0.9
@@ -43,8 +43,8 @@ y_test = [0] * 20
 i = 0
 
 # Model 4:
-spat_tmp_coeffs = spat_tmp_fourier_transform(data, viz=[20, 40, 60, 80])
-
+# data = spat_tmp_fourier_transform(data, viz=[20, 40, 60, 80])
+# data = STFT(data, viz=True)
 
 # Model 1: Dropout
 # z[i], y_test[i] = run_model(
