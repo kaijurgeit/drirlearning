@@ -38,14 +38,14 @@ y_test = [0] * 20
 def main():
     """Specify Models to run"""
     # 1 Load the data
-    data = utils.load_data(input_dir=INPUT_DIR, n_files=1, file_size=10)
+    data = utils.load_data(input_dir=INPUT_DIR, n_files=1, n_instances=10)
 
 
     i = 0
 
     # Model 4:
     data = utils.spat_tmp_fourier_transform(data, viz=[20, 40, 60, 80])
-    data = utils.STFT(data, viz=True)
+    data = utils.stft(data, viz=True)
 
     # Model 1: Dropout
     z[i], y_test[i] = utils.run_model(

@@ -6,34 +6,67 @@ import matplotlib.pyplot as plt
 from sound_field_analysis import gen, process
 
 
-def load_data(input_dir, fileprefix='table_of_drirs_100-0',
-              n_files=1, file_size=100, width=38, height=1400, cut_start=600, cut_end=2000):
-    """Load data["features"] and data["labels"] from DRIR tables as mat-files from an input directory"""
+def load_data(input_dir, file_prefix='table_of_drirs_100-0',
+              n_files=1, n_instances=100, n_channels=38, cut_start=600, cut_end=2000):
+    """
+    Loads data["features"] and data["labels"] from DRIR tables as mat-files from an input directory.
 
-    n_data = n_files * file_size
+    Args:
+        input_dir (string): Input directory containing the .mat-Files.
+        file_prefix (string): File names without the count suffix.
+        n_files (int): Number of files to be loaded.
+        n_instances (int): Number of instances/rows considered from the each .mat-File.
+        n_channels (int): Number of microphones.
+        cut_start (int): Start sample to cut each impulse response.
+        cut_end (int): End sample to cut each impulse response.
+
+    Returns:
+        data (dict->(2x ndarray)): Data {'features', 'labels'}, to be used as TensorFlow input.
+    """
+    n_data = n_files * n_instances
+    n_samples = cut_end - cut_start
     data = {
-        "features": np.zeros((n_data, width, height)),
+        "features": np.zeros((n_data, n_channels, n_samples)),
         "labels": np.zeros((n_data, 9))
     }
 
     for l in range(0, n_files):
-        path_data = os.path.join(input_dir, fileprefix + str(l) + '.mat')
+        path_data = os.path.join(input_dir, file_prefix + str(l) + '.mat')
         mat = scipy.io.loadmat(path_data)
 
         # Extract data and labels from mat-File
-        for k in range(0, file_size):
-            data["features"][l * file_size + k, :, :] = mat['table_of_drirs'][0][k][6].astype(np.float32)[:,cut_start:cut_end]
-            data["labels"][l * file_size + k, 0:3] = mat['table_of_drirs'][0][k][-1][0, 0][1]  # dim
-            data["labels"][l * file_size + k, 3:6] = mat['table_of_drirs'][0][k][-1][0, 0][2]  # s_pos
-            data["labels"][l * file_size + k, 6:9] = mat['table_of_drirs'][0][k][-1][0, 0][3]  # r_pos
+        for k in range(0, n_instances):
+            data["features"][l * n_instances + k, :, :]\
+                = mat['table_of_drirs'][0][k][6].astype(np.float32)[:, cut_start:cut_end]
+            data["labels"][l * n_instances + k, 0:3]\
+                = mat['table_of_drirs'][0][k][-1][0, 0][1]  # dim
+            data["labels"][l * n_instances + k, 3:6]\
+                = mat['table_of_drirs'][0][k][-1][0, 0][2]  # s_pos
+            data["labels"][l * n_instances + k, 6:9]\
+                = mat['table_of_drirs'][0][k][-1][0, 0][3]  # r_pos
 
-    data["features"] = data["features"].reshape((n_data, width, height, 1))
+    data["features"] = data["features"].reshape((n_data, n_channels, n_samples, 1))
 
     return data
 
 
+""""""
+
+
 def split_data(data, split=0.8):
-    """Splits data into training and test given a value from 0 to 1"""
+    """
+    Splits data into training and test.
+
+    Args:
+        data (dict->(2x ndarray)): Output of load_data or data {'features', 'labels'}.
+        split (float): Split ratio from 0.0 to 1.0.
+
+    Returns:
+        x_train (ndarray): Features for training.
+        y_train (ndarray): Labels for training.
+        x_test (ndarray): Features for testing.
+        y_test (ndarray): Labels for testing.
+    """
     n_data = data["features"].shape[0]
     x_train = data["features"][:int(n_data * split), :, :, :]
     y_train = data["labels"][:int(n_data * split), :]
@@ -45,13 +78,34 @@ def split_data(data, split=0.8):
 
 
 def shuffle(x, y):
-    """Shuffling data is important between training epochs"""
+    """
+    Shuffling data is important between training epochs
+
+    Args:
+        x (ndarray): Training data features.
+        y (ndarray): Training data labels.
+
+    Returns:
+        Shuffled training features (ndarray).
+        Shuffled training labels (ndarray).
+    """
     rnd_idx = np.random.permutation(len(x))
     return x[rnd_idx, :, :, :], y[rnd_idx, :]
 
 
 def next_batch(batch_size, x, y):
-    """Returns batches of features and labels"""
+    """
+    Returns batches of features and labels
+
+    Args:
+        batch_size (int): Size of the batch to be processed in one epoch.
+        x (ndarray): Training data features.
+        y (ndarray): Training data labels.
+
+    Returns:
+        Batch of data features (ndarray).
+        Batch of data labels (ndarray).
+    """
     if len(x) <= (next_batch.pointer + batch_size - 1):
         x_batch = x[next_batch.pointer:, :, :, :]
         y_batch = y[next_batch.pointer:, :]
@@ -68,7 +122,19 @@ next_batch.pointer = 0
 
 
 def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name="conv"):
-    """Wrapper for tf.nn.conv2d with summary"""
+    """
+    Wrapper for TensorFlows' tf.nn.conv2d with summary.
+
+    Args:
+        inputs (ndarray): Features.
+        filter (tuple): Filter/Receptive field.
+        strides (list): Strides.
+        activation (callback): Activation function to use.
+        name (string): Name of the TensorFlow/TensorBoard scope.
+
+    Returns:
+        Activation function (tf.Tensor)
+    """
     with tf.name_scope(name):
         # TODO right stddev for initializing filter?
         # stddev = 2 / np.sqrt(np.sum(filter))
@@ -84,7 +150,18 @@ def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name
 
 
 def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
-    """Wrapper for tf.matmul with summary"""
+    """
+    Wrapper for tf.matmul with summary.
+
+    Args:
+        inputs (ndarray): Features.
+        size_out (int): Number of output neurons.
+        activation (callback): Activation function to use.
+        name (string): Name of the TensorFlow/TensorBoard scope.
+
+    Returns:
+        Activation function (tf.Tensor)
+    """
     with tf.name_scope(name):
         size_in = int(inputs.get_shape()[1])
         stddev = 2 / np.sqrt(size_in)
@@ -100,13 +177,25 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
 
 
 def rnn_layer(inputs, n_neurons=100, name="rnn"):
+    """"""
     with tf.name_scope(name):
-        cell = tf.nn.rnn_cell.LSTMCell(n_neurons)# create a BasicRNNCell
+        cell = tf.nn.rnn_cell.LSTMCell(n_neurons)   # create a BasicRNNCell
         outputs, state = tf.nn.dynamic_rnn(cell, inputs)
         return outputs
 
 
 def train(y, predictions, learning_rate):
+    """
+
+    Args:
+        y (ndarray): Labels.
+        predictions (ndarray): Predictions.
+        learning_rate (float): Learning rate, e.g. 0.25*1E-5
+
+    Returns:
+        loss (tf.Tensor)
+        minimize function
+    """
     with tf.name_scope("loss"):
         loss = tf.losses.mean_squared_error(labels=y, predictions=predictions)
         # loss = tf.reduce_mean(losses)
@@ -124,7 +213,7 @@ def leaky_relu(z, name=None):
     return tf.maximum(0.01 * z, z, name=name)
 
 
-def elu(z, alpha=1):
+def elu(z, alpha=1.0):
     """ELU might help against vanishing gradients"""
     return tf.where(z < 0, alpha * (tf.math.exp(z) - 1), z)
 
@@ -137,7 +226,18 @@ def selu(z,
 
 
 def hparam(model, learning_rate, dropout, activation):
-    """Gives the current run a signature by combining model's hyperparameter to a string"""
+    """
+    Gives the current run a signature by combining model's hyperparameter to a string.
+
+    Args:
+        model (callback).
+        learning_rate (float).
+        dropout (float).
+        activation (callback).
+
+    Returns:
+        Signature (string).
+    """
     act_str = activation.__name__.split('.')[-1]
     signature = "_{}-lr={}-act={}".format(model.__name__, learning_rate, act_str)
     if dropout:
@@ -146,7 +246,27 @@ def hparam(model, learning_rate, dropout, activation):
 
 
 def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, activation=tf.nn.relu, dropout=0):
-    """Run a model given as a callback function"""
+    """
+    This function is essential to the whole application.
+    It runs a model given as a callback function.
+
+    Args:
+        model (callback): Each model must be created as a function in model.py.
+        data (dict->(2x ndarray)): Input data of format {'features': ndarray, labels': ndarray}, see load_data
+        split (float): Split ratio from 0.0 to 1.0, see split_data.
+        batch_size (int): Size of the batch to be processed in one epoch, see next_batch.
+        n_epochs (int): Number of epochs, each batch will be trained.
+        learning_rate (float): Learning rate, e.g. 0.25*1E-5, see train.
+        log_dir (string):
+            Directory with timestamp for current run with a subdirectory for each model
+            containing log data to be visualized, compared and evaluated in TensorBoard.
+        activation (callback): Activation function to use.
+        dropout (float): Dropout rate for convolutional nets, see tf.layers.dropout.
+
+    Returns:
+        z_test (ndarray): Predicted labels of test data.
+        y_test (ndarray):  True labels of test data.
+    """
     tf.reset_default_graph()
     is_training = tf.placeholder_with_default(True, shape=())
     save_dir = log_dir + "\\model.ckpt"
@@ -192,7 +312,8 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
                 x_batch, y_batch = next_batch(batch_size, x_train, y_train)
                 training_op_res, loss_res, summary = sess.run([training_op, loss, merged_summary],
                                                               feed_dict={x: x_batch, y: y_batch})
-            writer.add_summary(summary, epoch)
+            if summary is not None:
+                writer.add_summary(summary, epoch)
 
             print("epoch {}, loss {}".format(epoch, loss_res))
         try:
@@ -212,7 +333,22 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
 Signal Processing
 """
 
-def STFT(data, viz=None, rate=48000, n_segs=32):
+
+def stft(data, viz=None, rate=48000, n_segs=32):
+    """
+    Short-time fourier transform and visualize transformed data, see scipy.signal.STFT.
+
+    Args:
+        data: See load_data.
+        viz ([None, list(int)->len=4]):
+            None, if no visualization desired.
+            4 different instances indices (int) to be visualized.
+        rate (int): Sampling rate.
+        n_segs: Length of overlapping Hann-windows.
+
+    Returns:
+        data (dict->(2x ndarray)): Transformed data (instances, channels, freq bins, time bins) .
+    """
     f, t, Zxx = scipy.signal.stft(
         data["features"][:, :, :, 0],
         fs=rate, window='hann', nperseg=n_segs, noverlap=int(n_segs / 2))
@@ -228,6 +364,25 @@ def STFT(data, viz=None, rate=48000, n_segs=32):
 
 
 def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
+    """
+    Spatial fourier transform and visualize transformed data,
+    see sound_field_analysis.process.spatFT.
+
+    Args:
+        data: See load_data.
+        viz ([None, list->(4x int)):
+            None, if no visualization desired.
+            4 indices (int) for 3 different figures for sample visualization:
+            (1) STFT - 4 different instances.
+            (2) Spat. Fourier Coeffs. fixed time bins -> indices.
+            (3) Spat. Fourier Coeffs. fixed freq bin.
+        rate (int): Sampling rate.
+        n_segs: Length of overlapping Hann-windows, see STFT.
+        order (int): Spherical harmonics decomposition order, see sound_field_analysis toolbox.
+
+    Returns:
+        data (dict->(2x ndarray)): Transformed data (instances, spat base func, freq bins, time bins).
+    """
     # 2.1 STFT
     f, t, Zxx = scipy.signal.stft(
         data["features"][:, :, :, 0],
