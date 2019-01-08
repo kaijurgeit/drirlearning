@@ -3,7 +3,7 @@ import scipy.io
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-# from sound_field_analysis.sound_field_analysis import gen, process
+from sound_field_analysis import gen, process
 
 
 def load_data(input_dir, fileprefix='table_of_drirs_100-0',
@@ -212,7 +212,6 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
 Signal Processing
 """
 
-"""
 def STFT(data, viz=None, rate=48000, n_segs=32):
     f, t, Zxx = scipy.signal.stft(
         data["features"][:, :, :, 0],
@@ -258,4 +257,3 @@ def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
     data["features"] = spat_tmp_coeffs
 
     return data
-"""

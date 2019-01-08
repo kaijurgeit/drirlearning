@@ -1,5 +1,4 @@
-import tensorflow as tf
-from helpers import *
+from drirlearning.utils import *
 
 
 def model_cnn_2convs_4fcs(x, is_training, dropout, activation):

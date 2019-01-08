@@ -3,3 +3,4 @@ __pycache__/*
 dev/*
 dev.py
 sound_field_analysis/*
+test/.pytest_cache
