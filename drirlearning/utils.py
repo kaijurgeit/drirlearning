@@ -23,6 +23,9 @@ def load_data(input_dir, file_prefix='table_of_drirs_100-0',
     Returns:
         data (dict->(2x ndarray)): Data {'features', 'labels'}, to be used as TensorFlow input.
     """
+    if cut_end <= cut_start:
+        raise ValueError("cut_end must be greater than cut_start.")
+
     n_data = n_files * n_instances
     n_samples = cut_end - cut_start
     data = {
@@ -50,7 +53,14 @@ def load_data(input_dir, file_prefix='table_of_drirs_100-0',
     return data
 
 
-""""""
+def check_data_format(data):
+    """Check if data format is correct"""
+    if ('features' not in data.keys()) or ('labels' not in data.keys()):
+        raise TypeError("data must contain 'features' and 'labels'.")
+    if (type(data['features']) is not np.ndarray) or (type(data['labels']) is not np.ndarray):
+        raise TypeError("Features and labels must be of type numpy.ndarray")
+    if data['features'].shape[0] != data['labels'].shape[0]:
+        raise TypeError("The number of instances for features and labels must be the same.")
 
 
 def split_data(data, split=0.8):
@@ -67,6 +77,10 @@ def split_data(data, split=0.8):
         x_test (ndarray): Features for testing.
         y_test (ndarray): Labels for testing.
     """
+    check_data_format(data)
+    if (split < 0) or (split > 1):
+        raise ValueError("The split must have a value between 0.0 and 1.0")
+
     n_data = data["features"].shape[0]
     x_train = data["features"][:int(n_data * split), :, :, :]
     y_train = data["labels"][:int(n_data * split), :]
@@ -267,6 +281,8 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
         z_test (ndarray): Predicted labels of test data.
         y_test (ndarray):  True labels of test data.
     """
+    check_data_format(data)
+
     tf.reset_default_graph()
     is_training = tf.placeholder_with_default(True, shape=())
     save_dir = log_dir + "\\model.ckpt"
@@ -349,6 +365,7 @@ def stft(data, viz=None, rate=48000, n_segs=32):
     Returns:
         data (dict->(2x ndarray)): Transformed data (instances, channels, freq bins, time bins) .
     """
+    check_data_format(data)
     f, t, Zxx = scipy.signal.stft(
         data["features"][:, :, :, 0],
         fs=rate, window='hann', nperseg=n_segs, noverlap=int(n_segs / 2))
@@ -383,6 +400,7 @@ def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
     Returns:
         data (dict->(2x ndarray)): Transformed data (instances, spat base func, freq bins, time bins).
     """
+    check_data_format(data)
     # 2.1 STFT
     f, t, Zxx = scipy.signal.stft(
         data["features"][:, :, :, 0],
