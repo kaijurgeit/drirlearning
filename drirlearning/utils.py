@@ -371,6 +371,8 @@ def stft(data, viz=None, rate=48000, n_segs=32):
         fs=rate, window='hann', nperseg=n_segs, noverlap=int(n_segs / 2))
 
     if viz is not None:
+        if len(viz) != 4:
+            raise TypeError("The parameter viz must be of length 4.")
         fig1 = plt.figure()
         for i in range(0, 4):
             # STFT/Zxx: first 4 drirs and 0th node/mic -> freq/time all
@@ -417,6 +419,8 @@ def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
             spat_tmp_coeffs[d, :, :, tbin] = process.spatFT(Zxx[d, :, :, tbin], grid, order_max=order)
 
     if viz is not None:
+        if len(viz) != 4:
+            raise TypeError("The parameter viz must be of length 4.")
         fig1 = plt.figure()
         fig2 = plt.figure()
         fig3 = plt.figure()
