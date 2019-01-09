@@ -1,3 +1,7 @@
+"""
+This module provides you with all functions you need to compose models,
+load and prepare data and run the model.
+"""
 import os
 import argparse
 import time
@@ -193,11 +197,12 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
 
 
 def rnn_layer(inputs, n_neurons=100, name="rnn"):
-    """"""
-    with tf.name_scope(name):
-        cell = tf.nn.rnn_cell.LSTMCell(n_neurons)   # create a BasicRNNCell
-        outputs, state = tf.nn.dynamic_rnn(cell, inputs)
-        return outputs
+    """
+    TODO:
+    | This function is not implemented yet. However using an RNN is considered the next step
+    aiming at efficient training with little data sets and higher precision.
+    """
+    pass
 
 
 def train(y, predictions, learning_rate):
