@@ -54,7 +54,3 @@ by typing:
 cd ./docs
 make html
 ```
-
-## 5 Generate your own data
-
-
