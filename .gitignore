@@ -1,6 +1,7 @@
 .idea/*
 __pycache__/*
-dev/*
+docs/_build/*
 dev.py
 sound_field_analysis/*
 test/.pytest_cache
+data/output/*
