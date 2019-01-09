@@ -14,16 +14,16 @@ def load_data(input_dir, file_prefix='table_of_drirs_10-',
     Loads data["features"] and data["labels"] from DRIR tables as mat-files from an input directory.
 
     Args:
-        input_dir (string): Input directory containing the .mat-Files.
-        file_prefix (string): File names without the count suffix.
-        n_files (int): Number of files to be loaded.
-        n_instances (int): Number of instances/rows considered from the each .mat-File.
-        n_channels (int): Number of microphones.
-        cut_start (int): Start sample to cut each impulse response.
-        cut_end (int): End sample to cut each impulse response.
+        |  input_dir (string): Input directory containing the .mat-Files.
+        |  file_prefix (string): File names without the count suffix.
+        |  n_files (int): Number of files to be loaded.
+        |  n_instances (int): Number of instances/rows considered from the each .mat-File.
+        |  n_channels (int): Number of microphones.
+        |  cut_start (int): Start sample to cut each impulse response.
+        |  cut_end (int): End sample to cut each impulse response.
 
     Returns:
-        data (dict->(2x ndarray)): Data {'features', 'labels'}, to be used as TensorFlow input.
+        |  data (dict->(2x ndarray)): Data {'features', 'labels'}, to be used as TensorFlow input.
     """
     if cut_end <= cut_start:
         raise ValueError("cut_end must be greater than cut_start.")
@@ -70,14 +70,14 @@ def split_data(data, split=0.8):
     Splits data into training and test.
 
     Args:
-        data (dict->(2x ndarray)): Output of load_data or data {'features', 'labels'}.
-        split (float): Split ratio from 0.0 to 1.0.
+        |  data (dict->(2x ndarray)): Output of load_data or data {'features', 'labels'}.
+        |  split (float): Split ratio from 0.0 to 1.0.
 
     Returns:
-        x_train (ndarray): Features for training.
-        y_train (ndarray): Labels for training.
-        x_test (ndarray): Features for testing.
-        y_test (ndarray): Labels for testing.
+        |  x_train (ndarray): Features for training.
+        |  y_train (ndarray): Labels for training.
+        |  x_test (ndarray): Features for testing.
+        |  y_test (ndarray): Labels for testing.
     """
     check_data_format(data)
     if (split < 0) or (split > 1):
@@ -98,12 +98,12 @@ def shuffle(x, y):
     Shuffling data is important between training epochs
 
     Args:
-        x (ndarray): Training data features.
-        y (ndarray): Training data labels.
+        |  x (ndarray): Training data features.
+        |  y (ndarray): Training data labels.
 
     Returns:
-        Shuffled training features (ndarray).
-        Shuffled training labels (ndarray).
+        |  Shuffled training features (ndarray).
+        |  Shuffled training labels (ndarray).
     """
     rnd_idx = np.random.permutation(len(x))
     return x[rnd_idx, :, :, :], y[rnd_idx, :]
@@ -114,13 +114,13 @@ def next_batch(batch_size, x, y):
     Returns batches of features and labels
 
     Args:
-        batch_size (int): Size of the batch to be processed in one epoch.
-        x (ndarray): Training data features.
-        y (ndarray): Training data labels.
+        |  batch_size (int): Size of the batch to be processed in one epoch.
+        |  x (ndarray): Training data features.
+        |  y (ndarray): Training data labels.
 
     Returns:
-        Batch of data features (ndarray).
-        Batch of data labels (ndarray).
+        |  Batch of data features (ndarray).
+        |  Batch of data labels (ndarray).
     """
     if len(x) <= (next_batch.pointer + batch_size - 1):
         x_batch = x[next_batch.pointer:, :, :, :]
@@ -142,14 +142,14 @@ def conv_layer(inputs, filter, strides=[1, 1, 1, 1], activation=tf.nn.relu, name
     Wrapper for TensorFlows' tf.nn.conv2d with summary.
 
     Args:
-        inputs (ndarray): Features.
-        filter (tuple): Filter/Receptive field.
-        strides (list): Strides.
-        activation (callback): Activation function to use.
-        name (string): Name of the TensorFlow/TensorBoard scope.
+        |  inputs (ndarray): Features.
+        |  filter (tuple): Filter/Receptive field.
+        |  strides (list): Strides.
+        |  activation (callback): Activation function to use.
+        |  name (string): Name of the TensorFlow/TensorBoard scope.
 
     Returns:
-        Activation function (tf.Tensor)
+        |  Activation function (tf.Tensor)
     """
     with tf.name_scope(name):
         # TODO right stddev for initializing filter?
@@ -170,13 +170,13 @@ def fc_layer(inputs, size_out, activation=tf.nn.relu, name="fc"):
     Wrapper for tf.matmul with summary.
 
     Args:
-        inputs (ndarray): Features.
-        size_out (int): Number of output neurons.
-        activation (callback): Activation function to use.
-        name (string): Name of the TensorFlow/TensorBoard scope.
+        |  inputs (ndarray): Features.
+        |  size_out (int): Number of output neurons.
+        |  activation (callback): Activation function to use.
+        |  name (string): Name of the TensorFlow/TensorBoard scope.
 
     Returns:
-        Activation function (tf.Tensor)
+        |  Activation function (tf.Tensor)
     """
     with tf.name_scope(name):
         size_in = int(inputs.get_shape()[1])
@@ -204,13 +204,13 @@ def train(y, predictions, learning_rate):
     """
 
     Args:
-        y (ndarray): Labels.
-        predictions (ndarray): Predictions.
-        learning_rate (float): Learning rate, e.g. 0.25*1E-5
+        |  y (ndarray): Labels.
+        |  predictions (ndarray): Predictions.
+        |  learning_rate (float): Learning rate, e.g. 0.25*1E-5
 
     Returns:
-        loss (tf.Tensor)
-        minimize function
+        |  loss (tf.Tensor)
+        |  minimize function
     """
     with tf.name_scope("loss"):
         loss = tf.losses.mean_squared_error(labels=y, predictions=predictions)
@@ -225,19 +225,19 @@ def train(y, predictions, learning_rate):
 
 
 def leaky_relu(z, name=None):
-    """Leaky ReLU might help against vanishing gradients"""
+    """Leaky ReLU activation function might help against vanishing gradients"""
     return tf.maximum(0.01 * z, z, name=name)
 
 
 def elu(z, alpha=1.0):
-    """ELU might help against vanishing gradients"""
+    """ELU activation functionmight help against vanishing gradients"""
     return tf.where(z < 0, alpha * (tf.math.exp(z) - 1), z)
 
 
 def selu(z,
          scale=1.0507009873554804934193349852946,
          alpha=1.6732632423543772848170429916717):
-    """SELU might help against vanishing gradients"""
+    """SELU activation function might help against vanishing gradients"""
     return scale * elu(z, alpha)
 
 
@@ -246,13 +246,13 @@ def hparam(model, learning_rate, dropout, activation):
     Gives the current run a signature by combining model's hyperparameter to a string.
 
     Args:
-        model (callback).
-        learning_rate (float).
-        dropout (float).
-        activation (callback).
+        | model (callback)
+        | learning_rate (float)
+        | dropout (float)
+        | activation (callback)
 
     Returns:
-        Signature (string).
+        | Signature (string).
     """
     act_str = activation.__name__.split('.')[-1]
     signature = "_{}-lr={}-act={}".format(model.__name__, learning_rate, act_str)
@@ -267,21 +267,21 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
     It runs a model given as a callback function.
 
     Args:
-        model (callback): Each model must be created as a function in model.py.
-        data (dict->(2x ndarray)): Input data of format {'features': ndarray, labels': ndarray}, see load_data
-        split (float): Split ratio from 0.0 to 1.0, see split_data.
-        batch_size (int): Size of the batch to be processed in one epoch, see next_batch.
-        n_epochs (int): Number of epochs, each batch will be trained.
-        learning_rate (float): Learning rate, e.g. 0.25*1E-5, see train.
-        model_log_dir (string):
-            Directory with timestamp for current run with a subdirectory for each model
-            containing log data to be visualized, compared and evaluated in TensorBoard.
+        |  model (callback): Each model must be created as a function in model.py.
+        |  data (dict->(2x ndarray)): Input data of format {'features': ndarray, labels': ndarray}, see load_data
+        |  split (float): Split ratio from 0.0 to 1.0, see split_data.
+        |  batch_size (int): Size of the batch to be processed in one epoch, see next_batch.
+        |  n_epochs (int): Number of epochs, each batch will be trained.
+        |  learning_rate (float): Learning rate, e.g. 0.25*1E-5, see train.
+        |  model_log_dir (string):
+            |  Directory with timestamp for current run with a subdirectory for each model
+            |  containing log data to be visualized, compared and evaluated in TensorBoard.
         activation (callback): Activation function to use.
         dropout (float): Dropout rate for convolutional nets, see tf.layers.dropout.
 
     Returns:
-        z_test (ndarray): Predicted labels of test data.
-        y_test (ndarray):  True labels of test data.
+        |  z_test (ndarray): Predicted labels of test data.
+        |  y_test (ndarray):  True labels of test data.
     """
     check_data_format(data)
 
@@ -357,15 +357,15 @@ def stft(data, viz=None, rate=48000, n_segs=32):
     Short-time fourier transform and visualize transformed data, see scipy.signal.STFT.
 
     Args:
-        data: See load_data.
-        viz ([None, list(int)->len=4]):
-            None, if no visualization desired.
-            4 different instances indices (int) to be visualized.
-        rate (int): Sampling rate.
-        n_segs: Length of overlapping Hann-windows.
+        |  data: See load_data.
+        |  viz ([None, list(int)->len=4]):
+            |  None, if no visualization desired.
+            |  4 different instances indices (int) to be visualized.
+        |  rate (int): Sampling rate.
+        |  n_segs: Length of overlapping Hann-windows.
 
     Returns:
-        data (dict->(2x ndarray)): Transformed data (instances, channels, freq bins, time bins) .
+        |  data (dict->(2x ndarray)): Transformed data (instances, channels, freq bins, time bins) .
     """
     check_data_format(data)
     f, t, Zxx = scipy.signal.stft(
@@ -390,19 +390,19 @@ def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
     see sound_field_analysis.process.spatFT.
 
     Args:
-        data: See load_data.
-        viz ([None, list->(4x int)):
-            None, if no visualization desired.
-            4 indices (int) for 3 different figures for sample visualization:
-            (1) STFT - 4 different instances.
-            (2) Spat. Fourier Coeffs. fixed time bins -> indices.
-            (3) Spat. Fourier Coeffs. fixed freq bin.
-        rate (int): Sampling rate.
-        n_segs: Length of overlapping Hann-windows, see STFT.
-        order (int): Spherical harmonics decomposition order, see sound_field_analysis toolbox.
+        |  data: See load_data.
+        |  viz ([None, list->(4x int)):
+            |  None, if no visualization desired.
+            |  4 indices (int) for 3 different figures for sample visualization:
+            |  (1) STFT - 4 different instances.
+            |  (2) Spat. Fourier Coeffs. fixed time bins -> indices.
+            |  (3) Spat. Fourier Coeffs. fixed freq bin.
+        |  rate (int): Sampling rate.
+        |  n_segs: Length of overlapping Hann-windows, see STFT.
+        |  order (int): Spherical harmonics decomposition order, see sound_field_analysis toolbox.
 
     Returns:
-        data (dict->(2x ndarray)): Transformed data (instances, spat base func, freq bins, time bins).
+        |  data (dict->(2x ndarray)): Transformed data (instances, spat base func, freq bins, time bins).
     """
     check_data_format(data)
     # 2.1 STFT
@@ -439,6 +439,7 @@ def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
 
 
 def set_directories(config={}):
+    """Sets all directories to the default configuration."""
     config['file_prefix'] = config.get('file_prefix', "table_of_drirs_100-")
     config['input_dir'] = config.get('input_dir', os.path.join('.', 'data', 'input'))
     config['output_dir'] = config.get('output_dir', os.path.join('.', 'data', 'output'))
@@ -447,6 +448,7 @@ def set_directories(config={}):
 
 
 def set_arguments(config):
+    """Sets all arguments for running the models to the default configuration."""
     config['n_files'] = 2
     config['n_instances'] = 5
     config['split'] = 0.9
@@ -456,6 +458,10 @@ def set_arguments(config):
 
 
 def set_config_from_cli(config):
+    """
+    Enables to overwrite configuration from console to run similar configurations.
+    This is helpful to change quickly between running models with small or huge data sets.
+    """
     parser = argparse.ArgumentParser(
         description="Runs all Models. \n\n\
         (1) Create models in drirlearning.model.py \n\
