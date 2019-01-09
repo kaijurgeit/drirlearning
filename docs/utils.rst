@@ -1,10 +1,9 @@
-Utils
+utils
 ==========
 
-Utils explanation.
+This module provides you with all functions you need to compose models,
+load and prepare data and run the model.
 
-Utils
-----------
 .. automodule:: drirlearning.utils
     :members:
     :undoc-members:

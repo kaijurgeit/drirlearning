@@ -1,13 +1,10 @@
 """
-Try out different models and hyperparameters
---------------------------------------------
-# 1 Learning rates
-# 2 Weight initialization
-# 3 Bias initialization
-# 4 Activation function
-# 5 Optimizer
-# 6 Architecture
-# 7 DNN type
+(1) Create your own model in model.py.
+(2) Insert your model in function run() as  run_model(models.yourModel,...).
+(3) Adjust configuration hard-coded or via CLI interface.
+(4) Run the application.
+
+--> type `python ./drirlearning.py -h` to get command line help.
 """
 
 import numpy as np
@@ -19,7 +16,25 @@ np.set_printoptions(precision=3)
 
 
 def run(input_dir, log_dir, n_files, n_instances, split, n_epochs, batch_size):
-    """Specify Models to run"""
+    """
+    This function run's all models in a row. Please feel free to edit this function
+    by adding/removing model's, hard-coding different hyperparameter such as the
+    learning_rate, activation functions, dropouts or anything else.
+
+    Args:
+        |  input_dir (string): See run_model.
+        |  log_dir (string): See load_data.
+        |  n_files (int): See load_data.
+        |  n_instances (int): See load_data.
+        |  split (float): See run_model.
+        |  n_epochs (int): See run_model.
+        |  batch_size (int): See run model.
+
+    Returns:
+        |  data (dict->ndarrays): Data {'labels', 'features'}.
+        |  predicted_labels (ndarray): Model's predictions after training,
+        |  test_labels (ndarray): Corresponding test labels.
+    """
     # 1 Load the data
     data = utils.load_data(input_dir=input_dir, n_files=n_files, n_instances=n_instances)
     i = 0
@@ -63,6 +78,15 @@ def run(input_dir, log_dir, n_files, n_instances, split, n_epochs, batch_size):
 
 
 def main(config={}):
+    """
+
+    Args:
+        | config (dict): The project configuration, load_data and see run_model.
+
+
+    Returns:
+        | see run
+    """
     # 1 Configuration
     c = utils.set_directories(config)
     c = utils.set_arguments(c)
