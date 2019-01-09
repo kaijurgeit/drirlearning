@@ -65,23 +65,19 @@ def run(input_dir, log_dir, n_files, n_instances, split, n_epochs, batch_size):
 def main(config={}):
     # 1 Configuration
     c = utils.set_directories(config)
-    c = utils.set_hyperparameters(c)
+    c = utils.set_arguments(c)
     c = utils.set_config_from_cli(c)
     print(c)
 
     # 2 Run models
-    run(c)
-
-
-    # z = [0] * 20
-    # y_test = [0] * 20
-
-
-
-
-    pass
-
-
+    return run(
+        c['input_dir'],
+        c['log_dir'],
+        c['n_files'],
+        c['n_instances'],
+        c['split'],
+        c['n_epochs'],
+        c['batch_size'])
 
 
 if __name__ == '__main__':

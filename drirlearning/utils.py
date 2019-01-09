@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from sound_field_analysis import gen, process
 
 
-def load_data(input_dir, file_prefix='table_of_drirs_100-0',
+def load_data(input_dir, file_prefix='table_of_drirs_10-',
               n_files=1, n_instances=100, n_channels=38, cut_start=600, cut_end=2000):
     """
     Loads data["features"] and data["labels"] from DRIR tables as mat-files from an input directory.
@@ -36,7 +36,7 @@ def load_data(input_dir, file_prefix='table_of_drirs_100-0',
     }
 
     for l in range(0, n_files):
-        path_data = os.path.join(input_dir, file_prefix + str(l) + '.mat')
+        path_data = os.path.abspath(os.path.join(input_dir, file_prefix + str(l) + '.mat'))
         mat = scipy.io.loadmat(path_data)
 
         # Extract data and labels from mat-File
@@ -273,7 +273,7 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
         batch_size (int): Size of the batch to be processed in one epoch, see next_batch.
         n_epochs (int): Number of epochs, each batch will be trained.
         learning_rate (float): Learning rate, e.g. 0.25*1E-5, see train.
-        log_dir (string):
+        model_log_dir (string):
             Directory with timestamp for current run with a subdirectory for each model
             containing log data to be visualized, compared and evaluated in TensorBoard.
         activation (callback): Activation function to use.
@@ -287,9 +287,9 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
 
     tf.reset_default_graph()
     is_training = tf.placeholder_with_default(True, shape=())
-    save_dir = log_dir + "\\model.ckpt"
-    log_dir += hparam(model, learning_rate, dropout, activation)
-    print(log_dir)
+    model_log_dir = os.path.join(log_dir, hparam(model, learning_rate, dropout, activation))
+    save_dir = model_log_dir + "\\model.ckpt"
+    print(model_log_dir)
 
     """
     1 Graph construction phase
@@ -319,7 +319,7 @@ def run_model(model, data, split, batch_size, n_epochs, learning_rate, log_dir, 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
-        writer = tf.summary.FileWriter(log_dir, sess.graph)
+        writer = tf.summary.FileWriter(model_log_dir, sess.graph)
         sess.run(init)
 
         for epoch in range(0, n_epochs):
@@ -446,10 +446,12 @@ def set_directories(config={}):
     return config
 
 
-def set_hyperparameters(config):
+def set_arguments(config):
+    config['n_files'] = 2
+    config['n_instances'] = 5
     config['split'] = 0.9
-    config['n_epochs'] = 20
-    config['batch_size'] = 25
+    config['n_epochs'] = 5
+    config['batch_size'] = 5
     return config
 
 
@@ -459,15 +461,21 @@ def set_config_from_cli(config):
         (1) Create models in drirlearning.model.py \n\
         (2) Add models to drirlearning.py\n \
         (3) Run models from console")
-    parser.add_argument('-s', help="Split.")
+    parser.add_argument('-f', help="Number of files")
+    parser.add_argument('-i', help="Number of instances each file")
     parser.add_argument('-e', help="Number of epochs.")
     parser.add_argument('-b', help="Size of batch.")
+    parser.add_argument('-s', help="Split.")
     args = parser.parse_args()
-    if args.s is not None:
-        config['split'] = args.s
+    if args.f is not None:
+        config['n_files'] = args.e
+    if args.i is not None:
+        config['n_instances'] = args.i
     if args.e is not None:
         config['n_epochs'] = args.e
     if args.b is not None:
         config['batch_size'] = args.b
+    if args.s is not None:
+        config['split'] = args.s
 
     return config
