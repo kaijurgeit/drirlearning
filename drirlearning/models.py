@@ -1,7 +1,7 @@
 from drirlearning.utils import *
 
 
-def model_cnn_2convs_4fcs(x, is_training, dropout, activation):
+def cnn_2convs_4fcs(x, is_training, dropout, activation):
     # 2 convolutional Layers
     conv1 = conv_layer(x, filter=(1, 3, 1, 4), name="conv1", activation=activation)
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
@@ -21,7 +21,7 @@ def model_cnn_2convs_4fcs(x, is_training, dropout, activation):
     return predictions
 
 
-def model_cnn_3convs_4fcs(x, is_training, dropout, activation):
+def cnn_3convs_4fcs(x, is_training, dropout, activation):
     # 2 convolutional Layers
     conv1 = conv_layer(x, filter=(7, 7, 1, 4), name="conv1", activation=activation)
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
@@ -43,7 +43,7 @@ def model_cnn_3convs_4fcs(x, is_training, dropout, activation):
     return predictions
 
 
-def model_cnn_2convs_5fcs(x, is_training, dropout, activation):
+def cnn_2convs_5fcs(x, is_training, dropout, activation):
     # 2 convolutional Layers
     conv1 = conv_layer(x, filter=(1, 3, 1, 4), name="conv1", activation=activation)
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")

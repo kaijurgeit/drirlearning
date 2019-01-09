@@ -1,4 +1,6 @@
 import os
+import argparse
+import time
 import scipy.io
 import numpy as np
 import tensorflow as tf
@@ -434,3 +436,38 @@ def spat_tmp_fourier_transform(data, viz=None, rate=48000, n_segs=32, order=4):
     data["features"] = spat_tmp_coeffs
 
     return data
+
+
+def set_directories(config={}):
+    config['file_prefix'] = config.get('file_prefix', "table_of_drirs_100-")
+    config['input_dir'] = config.get('input_dir', os.path.join('.', 'data', 'input'))
+    config['output_dir'] = config.get('output_dir', os.path.join('.', 'data', 'output'))
+    config['log_dir'] = os.path.join(config['output_dir'],time.strftime("%Y-%m-%d_%H-%M"))
+    return config
+
+
+def set_hyperparameters(config):
+    config['split'] = 0.9
+    config['n_epochs'] = 20
+    config['batch_size'] = 25
+    return config
+
+
+def set_config_from_cli(config):
+    parser = argparse.ArgumentParser(
+        description="Runs all Models. \n\n\
+        (1) Create models in drirlearning.model.py \n\
+        (2) Add models to drirlearning.py\n \
+        (3) Run models from console")
+    parser.add_argument('-s', help="Split.")
+    parser.add_argument('-e', help="Number of epochs.")
+    parser.add_argument('-b', help="Size of batch.")
+    args = parser.parse_args()
+    if args.s is not None:
+        config['split'] = args.s
+    if args.e is not None:
+        config['n_epochs'] = args.e
+    if args.b is not None:
+        config['batch_size'] = args.b
+
+    return config
