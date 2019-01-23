@@ -11,7 +11,7 @@ activate myenv # windows
 ```
 Clone the project:
 ```
-git clone https://github.com/Agent49/rirtool.git
+git clone https://github.com/Agent49/drirlearning.git
 ```
 Install the requirements:
 ```
