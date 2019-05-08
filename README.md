@@ -15,7 +15,7 @@ git clone https://github.com/Agent49/drirlearning.git
 ```
 Install the requirements:
 ```
-pip install -r requirements.tx
+pip install -r requirements.txt
 ```
 *Tensorflow* requires python 3.4 to 3.6. It is highly recommended to run the application with GPU-support. 
 For more information see:
@@ -36,7 +36,7 @@ The best way to assess and compare the performance of your models is a visual in
 of loss and other results with TensorBoard. Therefore, the last line on your console gives you
 instructions after the process has finished. 
 
-## 4 Write and run your own models Write and run your own models
+## 4 Write and run your own models
 The purpose of this application is that you create your own models/neural nets
 and train them on different data sets. Initial models and sample data is provided.
 The principle steps are as follows:
